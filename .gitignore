@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 환경
+.env
+.venv/
+venv/
+uv.lock
+
+# 로그 / 런타임
+*.log
+*.pid
+
+# 테스트 캐시
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 민감 데이터 — 서버 런타임이 생성하는 시크릿/상태 파일
+.cerberus/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
