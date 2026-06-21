@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cerberus-beacon"
+version = "1.0.0"
+description = "Lightweight reverse-tunnel manager and web terminal for remote Linux servers"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "CerberusBeacon contributors" }]
+requires-python = ">=3.10"
+keywords = ["tunnel", "cloudflare", "terminal", "remote-access", "reverse-proxy"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: System :: Networking",
+]
+
+dependencies = [
+    "tornado>=6.3,<7",
+    "pyotp>=2.9",
+    "psutil>=5.9",
+    "qrcode>=7.4",
+    "terminado>=0.17",
+    "websockets>=12",
+]
+
+[project.optional-dependencies]
+telegram = ["python-telegram-bot[all]>=21,<23"]
+slack   = ["slack-bolt>=1.18", "slack-sdk>=3.0"]
+bots    = ["cerberus-beacon[telegram,slack]"]
+dev     = ["pytest>=7.0"]
+all     = ["cerberus-beacon[bots,dev]"]
+
+[project.urls]
+Homepage   = "https://github.com/TaewonyNet/CerberusBeacon"
+Repository = "https://github.com/TaewonyNet/CerberusBeacon.git"
+Issues     = "https://github.com/TaewonyNet/CerberusBeacon/issues"
+
+[project.scripts]
+cerberus-beacon  = "main:main"
+cerberus-ctl     = "cerberus_ctl:main"
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"src.templates" = ["*.html", "*.js", "*.css"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+testpaths    = ["tests"]

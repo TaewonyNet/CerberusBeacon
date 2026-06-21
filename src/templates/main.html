@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Cerberus</title>
+%(xterm_css)s
+<style>
+:root{
+  --bg:#0d1117;--bg-sec:#1c2128;--sidebar-bg:#161b22;--border:#30363d;
+  --text:#c9d1d9;--text-dim:#8b949e;--accent:#58a6ff;
+  --green:#3fb950;--red:#f85149;--yellow:#d29922;
+  --sidebar-w:230px;--header-h:40px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden}
+/* HEADER */
+#header{height:var(--header-h);background:var(--sidebar-bg);border-bottom:1px solid var(--border);
+        display:flex;align-items:center;padding:0 0.75rem;gap:0.5rem;flex-shrink:0;z-index:200}
+#header .brand{font-weight:700;color:var(--accent);font-size:0.95rem;flex:1}
+#header button{background:none;border:none;color:var(--text);font-size:1.1rem;cursor:pointer;
+               padding:0.25rem 0.4rem;border-radius:4px}
+#header button:hover{background:var(--border)}
+/* BODY LAYOUT */
+#body{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+#sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);border-right:1px solid var(--border);
+         display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+/* ACCORDION */
+.acc-section{border-bottom:1px solid var(--border)}
+.acc-header{padding:0.5rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.4rem;
+            font-size:0.85rem;font-weight:600;color:var(--text-dim);user-select:none}
+.acc-header:hover{background:rgba(255,255,255,0.04)}
+.acc-arrow{transition:transform 0.2s;font-size:0.75rem}
+.acc-body{padding:0.5rem 0.75rem;font-size:0.82rem;display:none}
+.acc-body.open{display:block}
+/* MAIN CONTENT */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* TERMINAL */
+#terminal-container{flex:1;padding:4px;overflow:hidden;display:%(term_display)s;flex-direction:column}
+#terminal{flex:1;overflow:hidden;position:relative}
+/* METRICS */
+.metric-bar-wrap{margin-bottom:0.5rem}
+.metric-label{display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:2px}
+.metric-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.metric-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s}
+/* TUNNEL LIST */
+.tunnel-item{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:6px;
+             padding:0.4rem 0.5rem;margin-bottom:0.4rem;font-size:0.8rem}
+.tunnel-url{color:var(--accent);word-break:break-all;font-size:0.75rem}
+.tunnel-btns{display:flex;gap:0.3rem;margin-top:0.3rem}
+.tunnel-btns button{font-size:0.75rem;padding:0.2rem 0.4rem;border:1px solid var(--border);
+                    border-radius:4px;background:none;color:var(--text);cursor:pointer}
+.tunnel-btns button:hover{background:var(--border)}
+/* FILE TREE */
+.file-tree{font-size:0.82rem}
+.file-node{padding:0.15rem 0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-node:hover{color:var(--accent)}
+.file-node.dir::before{content:"📁 "}
+.file-node.file::before{content:"📄 "}
+.file-node.selected{background:rgba(88,166,255,0.15);border-radius:4px}
+#upload-target{font-size:0.75rem;color:var(--text-dim);margin-bottom:0.3rem}
+#upload-btn{font-size:0.8rem;padding:0.25rem 0.5rem;border:1px solid var(--border);
+            border-radius:4px;background:none;color:var(--text);cursor:pointer;margin-bottom:0.4rem}
+#upload-btn:disabled{opacity:0.4;cursor:not-allowed}
+/* MACROS */
+.macros-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.3rem}
+.macro-btn{padding:0.3rem 0.4rem;border:1px solid var(--border);border-radius:4px;
+           background:none;color:var(--text);cursor:pointer;font-size:0.8rem;text-align:left;
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.macro-btn:hover{background:var(--border)}
+.macro-sep{grid-column:span 2;border-top:1px solid var(--border);margin:0.2rem 0}
+/* TOAST */
+#toast-container{position:fixed;top:50px;left:50%;transform:translateX(-50%);
+                 z-index:9999;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none}
+.toast{background:#1f2937;border:1px solid var(--border);border-radius:6px;
+       padding:0.5rem 1rem;font-size:0.85rem;opacity:0;transition:opacity 0.3s;
+       pointer-events:auto}
+.toast.show{opacity:1}
+/* TERMINAL TABS */
+#term-tabs{display:flex;align-items:center;gap:0.3rem;padding:0.3rem 0.4rem;
+           border-bottom:1px solid var(--border);background:var(--sidebar-bg);flex-shrink:0}
+.term-tab{padding:0.2rem 0.6rem;border:1px solid var(--border);border-radius:4px;
+          cursor:pointer;font-size:0.8rem;background:none;color:var(--text-dim)}
+.term-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* DEBUG PANEL */
+#debug-panel{position:fixed;bottom:0;left:0;right:0;height:200px;background:var(--sidebar-bg);
+             border-top:1px solid var(--border);z-index:300;display:none;flex-direction:column}
+#debug-panel.open{display:flex}
+#debug-tabs{display:flex;border-bottom:1px solid var(--border)}
+.debug-tab{padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;border-bottom:2px solid transparent}
+.debug-tab.active{border-bottom-color:var(--accent);color:var(--accent)}
+#debug-content{flex:1;overflow-y:auto;padding:0.5rem;font-family:monospace;font-size:0.78rem}
+/* BOTTOM BAR (특수키 2행 + 매크로 1행) */
+#bottom-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;display:none;
+  flex-direction:column;background:var(--sidebar-bg);border-top:1px solid var(--border);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+#bottom-bar.visible{display:flex}
+#special-bar{display:flex;flex-direction:column;flex-shrink:0;border-bottom:1px solid var(--border)}
+.sb-row{display:flex;align-items:center;gap:4px;
+  padding:4px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+.sb-row:not(:last-child){border-bottom:1px solid var(--border)}
+#macro-bar{display:flex;align-items:center;gap:4px;
+  padding:4px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;flex-shrink:0}
+.sb-row .sb{flex-shrink:0;min-width:2.4rem;padding:0.28rem 0.45rem;text-align:center;
+  background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);
+  font-size:0.8rem;cursor:pointer;white-space:nowrap;font-family:monospace}
+.sb-row .sb:active{background:var(--accent);color:#000}
+.sb-row .sb.active{background:var(--yellow);color:#000;border-color:var(--yellow)}
+#mod-key-row{display:none;align-items:center;gap:3px;padding:3px 8px;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;white-space:nowrap;border-bottom:1px solid var(--border);
+  background:color-mix(in srgb,var(--yellow) 10%,var(--sidebar-bg))}
+#mod-key-row.active{display:flex}
+#mod-key-row .mk{flex-shrink:0;min-width:1.8rem;padding:0.2rem 0.3rem;text-align:center;
+  background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);
+  font-size:0.75rem;cursor:pointer;font-family:monospace}
+#mod-key-row .mk:active{background:var(--yellow);color:#000}
+#macro-bar .mb{flex-shrink:0;padding:0.28rem 0.55rem;background:var(--bg-sec);
+  border:1px solid var(--border);border-radius:4px;color:var(--text);
+  font-size:0.82rem;cursor:pointer;white-space:nowrap}
+#macro-bar .mb:active{background:var(--accent);color:#000}
+#macro-bar .mb-edit{opacity:0.6;font-size:0.9rem;padding:0.28rem 0.5rem}
+/* MODALS */
+.cb-modal{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.75);
+  overflow-y:auto;padding:1rem}
+.cb-modal.open{display:flex;align-items:flex-start;justify-content:center}
+.cb-mbox{background:var(--bg-sec);border:1px solid var(--border);border-radius:10px;
+  padding:1.4rem;width:100%;max-width:440px;margin-top:2rem}
+.cb-mbox h3{margin:0 0 1.1rem;font-size:1rem;display:flex;align-items:center;gap:0.5rem}
+.cb-field{margin-bottom:0.8rem}
+.cb-field label{display:block;font-size:0.78rem;color:var(--text-dim);margin-bottom:0.25rem}
+.cb-field input,.cb-field textarea,.cb-field select{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:0.4rem 0.5rem;color:var(--text);font-size:0.9rem;box-sizing:border-box}
+.cb-field textarea{min-height:70px;font-family:monospace;resize:vertical}
+.cb-row{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1.1rem;flex-wrap:wrap}
+.btn-p{background:var(--accent);color:#000;border:none;border-radius:5px;
+  padding:0.4rem 1.1rem;cursor:pointer;font-weight:600}
+.btn-d{background:#c0392b;color:#fff;border:none;border-radius:5px;
+  padding:0.4rem 1.1rem;cursor:pointer}
+.btn-g{background:none;border:1px solid var(--border);border-radius:5px;
+  padding:0.4rem 1.1rem;color:var(--text);cursor:pointer}
+/* MOBILE */
+@media(max-width:1023px){
+  #sidebar{position:fixed;top:0;left:0;bottom:0;z-index:150;transform:translateX(-100%);transition:transform 0.3s;width:var(--sidebar-w)}
+  #sidebar.open{transform:translateX(0)}
+  #btn-hamburger{display:block!important}
+  #main{padding-bottom:190px} /* bottom-bar 4줄 높이 확보 */
+}
+#btn-hamburger{display:none}
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<div id="header">
+  <button id="btn-hamburger" onclick="toggleSidebar()" title="[[btn_menu]]">☰</button>
+  <span class="brand">🐺 CERBERUS</span>
+  <button id="btn-newtab" onclick="newTermTab()" title="[[btn_new_term]]" style="display:%(newtab_display)s">＋</button>
+  <button onclick="openSettings()" title="[[btn_settings]]">⚙️</button>
+  <button onclick="toggleDebug()" title="[[btn_debug]]">🐛</button>
+  <button onclick="if(confirm('[[confirm_logout]]'))location.href='/logout'" title="[[btn_logout]]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
+</div>
+<!-- BODY -->
+<div id="body">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <!-- 터널 패널 -->
+    <div class="acc-section">
+      <div class="acc-header" onclick="toggleAcc('acc-tunnel')">
+        <span class="acc-arrow" id="arr-acc-tunnel">▶</span> [[sec_tunnel]]
+      </div>
+      <div class="acc-body open" id="acc-tunnel">
+        <div id="tunnel-list">([[loading]])</div>
+        <div style="display:flex;gap:0.3rem;margin-top:0.4rem;align-items:center">
+          <input id="tunnel-port-input" type="number" min="1" max="65535"
+            style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+                   border-radius:4px;color:var(--text);padding:0.2rem 0.4rem;font-size:0.8rem;
+                   outline:none"
+            placeholder="[[ph_port]]">
+          <button onclick="openTunnel()" style="flex-shrink:0;font-size:0.8rem;padding:0.25rem 0.5rem;
+            border:1px solid var(--border);border-radius:4px;background:none;color:var(--text);cursor:pointer">
+            [[btn_open_port]]
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 메트릭 패널 -->
+    <div class="acc-section">
+      <div class="acc-header" onclick="toggleAcc('acc-metrics')">
+        <span class="acc-arrow" id="arr-acc-metrics">▶</span> [[sec_metrics]]
+      </div>
+      <div class="acc-body open" id="acc-metrics">
+        <div id="metrics-content">[[loading]]</div>
+      </div>
+    </div>
+    <!-- 파일 패널 -->
+    <div class="acc-section">
+      <div class="acc-header" onclick="toggleAcc('acc-files')">
+        <span class="acc-arrow" id="arr-acc-files">▶</span> [[sec_files]]
+      </div>
+      <div class="acc-body open" id="acc-files">
+        <div id="upload-target">[[upload_target_none]]</div>
+        <button id="upload-btn" disabled onclick="triggerUpload()" title="[[upload_hint]]">[[btn_upload]]</button>
+        <input type="file" id="file-input" multiple style="display:none" onchange="doUpload(event)">
+        <div class="file-tree" id="file-tree">[[loading]]</div>
+      </div>
+    </div>
+    %(macros_section)s
+    %(terminal_section)s
+  </div>
+  <!-- MAIN -->
+  <div id="main">
+    %(term_tabs)s
+    <div id="terminal-container">
+      <div id="terminal"></div>
+    </div>
+  </div>
+</div>
+<!-- BOTTOM BAR -->
+<div id="bottom-bar" onmousedown="event.preventDefault()">
+  <div id="special-bar">
+    <div class="sb-row">
+      <button class="sb" onclick="sendSpecial('\x1b')" title="Escape">ESC</button>
+      <button class="sb" onclick="sendSpecial('/')" title="[[title_slash]]">/</button>
+      <button class="sb" onclick="sendSpecial('-')" title="[[title_dash]]">-</button>
+      <button class="sb" onclick="sendSpecial('\x1b[2~')" title="Insert">INS</button>
+      <button class="sb" onclick="sendSpecial('\x1b[H')" title="Home">HOME</button>
+      <button class="sb" onclick="sendSpecial('\x1b[A')" title="[[title_up]]">↑</button>
+      <button class="sb" onclick="sendSpecial('\x1b[F')" title="End">END</button>
+      <button class="sb" onclick="sendSpecial('\x1b[5~')" title="Page Up">PGUP</button>
+    </div>
+    <div class="sb-row">
+      <button class="sb" onclick="sendSpecial('\t')" title="Tab">TAB</button>
+      <button class="sb" id="btn-ctrl" onclick="toggleCtrl()" title="Ctrl modifier">CTRL</button>
+      <button class="sb" id="btn-alt" onclick="toggleAlt()" title="Alt modifier">ALT</button>
+      <button class="sb" id="btn-shift" onclick="toggleShift()" title="Shift modifier">SHIFT</button>
+      <button class="sb" onclick="sendSpecial('\x1b[D')" title="[[title_left]]">←</button>
+      <button class="sb" onclick="sendSpecial('\x1b[B')" title="[[title_down]]">↓</button>
+      <button class="sb" onclick="sendSpecial('\x1b[C')" title="[[title_right]]">→</button>
+      <button class="sb" onclick="sendSpecial('\x1b[6~')" title="Page Down">PGDN</button>
+    </div>
+    <div class="sb-row">
+      <button class="sb" onclick="sendSpecial('\x1bOP')" title="F1">F1</button>
+      <button class="sb" onclick="sendSpecial('\x1bOQ')" title="F2">F2</button>
+      <button class="sb" onclick="sendSpecial('\x1bOR')" title="F3">F3</button>
+      <button class="sb" onclick="sendSpecial('\x1bOS')" title="F4">F4</button>
+      <button class="sb" onclick="sendSpecial('\x1b[15~')" title="F5">F5</button>
+      <button class="sb" onclick="sendSpecial('\x1b[17~')" title="F6">F6</button>
+      <button class="sb" onclick="sendSpecial('\x1b[18~')" title="F7">F7</button>
+      <button class="sb" onclick="sendSpecial('\x1b[19~')" title="F8">F8</button>
+      <button class="sb" onclick="sendSpecial('\x1b[20~')" title="F9">F9</button>
+      <button class="sb" onclick="sendSpecial('\x1b[21~')" title="F10">F10</button>
+      <button class="sb" onclick="sendSpecial('\x1b[23~')" title="F11">F11</button>
+      <button class="sb" onclick="sendSpecial('\x1b[24~')" title="F12">F12</button>
+    </div>
+  </div>
+  <div id="mod-key-row"></div>
+  <div id="macro-bar"></div>
+</div>
+<!-- MACRO EDIT MODAL -->
+<div class="cb-modal" id="macro-modal">
+  <div class="cb-mbox">
+    <h3 id="macro-modal-title">[[macro_edit]]</h3>
+    <div class="cb-field">
+      <label>[[macro_lbl_name]]</label>
+      <input id="mm-label" placeholder="[[macro_ph_label]]" autocomplete="off">
+    </div>
+    <div class="cb-field">
+      <label>[[macro_lbl_send]] &nbsp;<span style="opacity:0.5;font-size:0.75rem">[[macro_send_hint]]</span></label>
+      <textarea id="mm-send" placeholder="[[macro_ph_send]]"></textarea>
+    </div>
+    <div class="cb-row">
+      <button class="btn-d" id="mm-del" onclick="deleteMacroEdit()">[[btn_delete]]</button>
+      <button class="btn-g" onclick="closeMacroModal()">[[btn_cancel]]</button>
+      <button class="btn-p" onclick="saveMacroEdit()">[[btn_save]]</button>
+    </div>
+  </div>
+</div>
+<!-- SETTINGS MODAL -->
+<div class="cb-modal" id="settings-modal">
+  <div class="cb-mbox">
+    <h3>[[settings_title]]</h3>
+    <div class="cb-field">
+      <label>[[lbl_tg_token]]</label>
+      <input id="st-tg-token" type="password" placeholder="1234567890:AAHxxx..." autocomplete="off">
+    </div>
+    <div class="cb-field">
+      <label>[[lbl_tg_chat]]</label>
+      <input id="st-tg-chat" type="number" placeholder="123456789">
+    </div>
+    <div class="cb-field">
+      <label>[[lbl_idle_timeout]]</label>
+      <input id="st-idle" type="number" min="0" max="1440">
+    </div>
+    <div class="cb-field">
+      <label>[[lbl_term_shell]]</label>
+      <input id="st-shell" placeholder="/bin/bash">
+    </div>
+    <div class="cb-field">
+      <label>[[lbl_lang]]</label>
+      <select id="st-lang">
+        <option value="">Auto (OS)</option>
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+    <div class="cb-row">
+      <button class="btn-g" onclick="closeSettings()">[[btn_cancel]]</button>
+      <button class="btn-p" onclick="saveSettings()">[[btn_save]]</button>
+    </div>
+  </div>
+</div>
+<!-- TOAST -->
+<div id="toast-container"></div>
+<!-- DEBUG PANEL -->
+<div id="debug-panel" class="open">
+  <div id="debug-tabs">
+    <div class="debug-tab active" onclick="switchDebugTab('console')">Console</div>
+    <div class="debug-tab" onclick="switchDebugTab('network')">Network</div>
+    <div class="debug-tab" onclick="switchDebugTab('system')">System</div>
+  </div>
+  <div id="debug-content"></div>
+</div>
+%(xterm_js)s
+<script>
+%(main_js)s
+</script>
+</body>
+</html>
